@@ -1,36 +1,28 @@
 import axios from "axios";
-import { Formik } from "formik";
+import { Formik, ErrorMessage, Field, Form } from "formik";
 import React, { useState } from "react";
-import { Button, Card, Container, Form } from "react-bootstrap";
+import { Button, Card, Container, Modal } from "react-bootstrap";
+import * as Yup from "yup";
 
-const Login = () => {
+export default function Login(props) {
 
-  const [values, setValues] = useState({
-		email: '',
-		password: '',
-		showPassword: false,
-	});
-
-  const handleChange = (prop) => (event) => {
-		setValues({ ...values, [prop]: event.target.value });
-	};
+  const [modalShow, setModalShow] = useState(false);
 
   const handleLogin = (e) => {
-    e.preventDefault();
-    console.log(e.values);
-
     axios
       .post("http://challenge-react.alkemy.org/", {
-        email: "challenge@alkemy.org",
-        password: "react",
+        email: e.email,
+        password: e.password,
       })
       .then(function (response) {
         console.log(response);
       })
       .catch(function (error) {
         console.log(error);
+        setModalShow(true)
       });
   };
+
   return (
     <div>
       <Container>
@@ -47,61 +39,90 @@ const Login = () => {
               <h1>Login</h1>
             </Card.Title>
             <Formik
-              initialValues={{ email: "", password: "" }}
-              validate={(values) => {
-                const errors = {};
-                if (!values.email) {
-                  errors.email = "Required";
-                } else if (
-                  !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(values.email)
-                ) {
-                  errors.email = "Invalid email address";
-                }
-                return errors;
+              initialValues={{
+                email: "",
+                password: "",
               }}
-              onSubmit={(values, { setSubmitting }) => {
-                setTimeout(() => {
-                  alert(JSON.stringify(values, null, 2));
-                  setSubmitting(false);
-                }, 400);
+              validationSchema={Yup.object().shape({
+                email: Yup.string()
+                  .email("Email is invalid")
+                  .required("Email is required"),
+                password: Yup.string()
+                  .min(5, "Password must be at least 5 characters")
+                  .required("Password is required"),
+              })}
+              onSubmit={(fields) => {
+               handleLogin(fields)
               }}
-            >
-              {({
-                values,
-                errors,
-                touched,
-                handleChange,
-                handleBlur,
-                handleSubmit,
-                isSubmitting,
-                /* and other goodies */
-              }) => (
-                <form onSubmit={handleLogin} noValidate>
-                  <Form>
-                    <Form.Group className="mb-3" controlId="formBasicEmail">
-                      <Form.Label>Email address</Form.Label>
-                      <Form.Control type="email" placeholder="Enter email" />
-                      <Form.Text className="text-muted">
-                        We'll never share your email with anyone else.
-                      </Form.Text>
-                    </Form.Group>
-
-                    <Form.Group className="mb-3" controlId="formBasicPassword">
-                      <Form.Label>Password</Form.Label>
-                      <Form.Control type="password" placeholder="Password" />
-                    </Form.Group>
-                    <Button variant="primary" type="submit">
-                      Ingresar
-                    </Button>
-                  </Form>
-                </form>
+              render={({ errors, status, touched }) => (
+                <Form>
+                  <div className="form-group">
+                    <label htmlFor="email">Email</label>
+                    <Field
+                      name="email"
+                      type="text"
+                      className={
+                        "form-control" +
+                        (errors.email && touched.email ? " is-invalid" : "")
+                      }
+                    />
+                    <ErrorMessage
+                      name="email"
+                      component="div"
+                      className="invalid-feedback"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="password">Password</label>
+                    <Field
+                      name="password"
+                      type="password"
+                      className={
+                        "form-control" +
+                        (errors.password && touched.password
+                          ? " is-invalid"
+                          : "")
+                      }
+                    />
+                    <ErrorMessage
+                      name="password"
+                      component="div"
+                      className="invalid-feedback"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <button type="submit" className="btn btn-primary mr-2">
+                      Enviar
+                    </button>
+                  </div>
+                </Form>
               )}
-            </Formik>
+            />
           </Card.Body>
         </Card>
+        <Modal
+      show={modalShow}
+      onHide={() => setModalShow(false)}
+      size="md"
+      aria-labelledby="contained-modal-title-vcenter"
+      centered
+    >
+      <Modal.Header closeButton>
+        <Modal.Title id="contained-modal-title-vcenter">
+          Error de Autenticación
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <h6>Email y/o password no coinciden</h6>
+        <p>
+          Por favor, ingrese un Email y password correcto.
+        </p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button onClick={() => setModalShow(false)}>Close</Button>
+      </Modal.Footer>
+    </Modal>
       </Container>
     </div>
   );
-};
-
-export default Login;
+}
