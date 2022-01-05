@@ -7,7 +7,7 @@ import * as Yup from "yup";
 export default function Login(props) {
 
   const [modalShow, setModalShow] = useState(false);
-
+  
   const handleLogin = (e) => {
     axios
       .post("http://challenge-react.alkemy.org/", {
@@ -15,10 +15,14 @@ export default function Login(props) {
         password: e.password,
       })
       .then(function (response) {
+        localStorage.setItem("token",response.data.token)
+        props.setAuth(true)
         console.log(response);
+        console.log(localStorage.getItem('token'))
       })
       .catch(function (error) {
         console.log(error);
+        localStorage.setItem("token",null)
         setModalShow(true)
       });
   };
@@ -113,9 +117,9 @@ export default function Login(props) {
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <h6>Email y/o password no coinciden</h6>
+        <h6>Email y/o Password no coincide con ningún usuario registrado</h6>
         <p>
-          Por favor, ingrese un Email y password correcto.
+          Por favor, ingrese un Email y Password correcto.
         </p>
       </Modal.Body>
       <Modal.Footer>
