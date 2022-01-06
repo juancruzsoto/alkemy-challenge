@@ -2,13 +2,16 @@ import axios from "axios";
 import { Formik, ErrorMessage, Field, Form } from "formik";
 import React, { useState } from "react";
 import { Button, Card, Container, Modal } from "react-bootstrap";
+import LoadScreen from "./LoadScreen"
 import * as Yup from "yup";
 
 export default function Login(props) {
 
   const [modalShow, setModalShow] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   const handleLogin = (e) => {
+
     axios
       .post("http://challenge-react.alkemy.org/", {
         email: e.email,
@@ -25,10 +28,13 @@ export default function Login(props) {
         localStorage.setItem("token",null)
         setModalShow(true)
       });
+
+    setLoading(false)
   };
 
   return (
     <div>
+      {loading && <LoadScreen/>}
       <Container>
         <Card
           style={{
