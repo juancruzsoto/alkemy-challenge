@@ -28,7 +28,7 @@ const homeStyle = {
         fontFamily: "Century Gothic",
         textShadow: "1px 1px 2px black",
         fontWeight: 550,
-        marginTop: "100px"
+        marginTop: "60px"
       },
       titleC: {
         fontFamily: "Century Gothic",
