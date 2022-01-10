@@ -39,10 +39,17 @@ function LinearProgressWithLabel(props) {
 export default function Home(props) {
   const classes = useStyles();
 
+  const [heroesID, setHeroesID] = useState([]);
   const [infoCards, setInfoCards] = useState([]);
-  const [teamStats,setTeamStats] = useState({});
+  const [teamStats,setTeamStats] = useState({
+    "intelligence": 0,
+    "strength": 0,
+    "speed": 0,
+    "durability": 0,
+    "power": 0,
+    "combat":0 
+  });
 
-  const IDS = [14,412,652,312,256,574];
   const colorCard = {
     "good": "#c8e6c9",
     "bad" : "#ffcdd2"
@@ -57,7 +64,7 @@ export default function Home(props) {
   }
 
   useEffect(() => {
-    IDS.map((ID) => {
+    heroesID.map((ID) => {
       axios
         .get(
           URL + TOKEN_API + "/" + ID
@@ -87,7 +94,11 @@ export default function Home(props) {
   }, []);
 
   useEffect(() => {
-    console.log(infoCards);
+    infoCards.map((Hero) => {
+      Object.keys(Hero.powerstats).map((skill) => {
+      setTeamStats({...teamStats,skill:teamStats[skill]+Hero.powerstats[skill]})
+      })
+    })
   }, [infoCards]);
 
   return (
@@ -102,6 +113,19 @@ export default function Home(props) {
           >
             Conforma tu equipo de Superhéroes
           </Typography>
+        </Grid>
+        <Grid item xs={12}>
+          <Typography
+            gutterBottom
+            variant="h6"
+            // style={{ textAlign: "center" }}
+            className={classes.titleC}
+          >
+            Conforma tu equipo de Superhéroes {teamStats["strength"]}
+          </Typography>
+          {Object.keys(teamStats).map((skill) => {
+            console.log(teamStats[skill])
+          })}
         </Grid>
         <Grid item xs={12}>
           <Box
@@ -155,7 +179,7 @@ export default function Home(props) {
                               </Typography>
                               <Box sx={{ width: "100%" }}>
                                 <LinearProgressWithLabel
-                                  value={Hero.powerstats[skill]}
+                                  value={Hero.powerstats[skill] > 0 ? Hero.powerstats[skill] : 0}
                                   color={colorPowerstats[skill]}
                                 />
                               </Box>
