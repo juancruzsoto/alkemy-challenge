@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { makeStyles } from "@mui/styles";
+import { styled } from "@mui/material/styles";
 import homeStyle from "../assets/homeStyle";
 import {
+  Button,
   Card,
   CardContent,
   CardMedia,
@@ -11,10 +13,19 @@ import {
   Modal,
   Paper,
   Skeleton,
+  Table,
+  TableBody,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
   Typography,
 } from "@mui/material";
+import TableCell, { tableCellClasses } from "@mui/material/TableCell";
 import { Box } from "@mui/system";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
+import AddIcon from "@mui/icons-material/Add";
+import LoadScreen from "./LoadScreen";
 import axios from "axios";
 import { TOKEN_API, URL } from "../config";
 
@@ -40,12 +51,34 @@ function LinearProgressWithLabel(props) {
   );
 }
 
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
+  [`&.${tableCellClasses.head}`]: {
+    backgroundColor: theme.palette.common.black,
+    color: theme.palette.common.white,
+  },
+  [`&.${tableCellClasses.body}`]: {
+    fontSize: 14,
+  },
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  "&:nth-of-type(odd)": {
+    backgroundColor: theme.palette.action.hover,
+  },
+  // hide last border
+  "&:last-child td, &:last-child th": {
+    border: 0,
+  },
+}));
+
 export default function Home(props) {
   const classes = useStyles();
 
+  const [loading, setLoading] = useState(false);
   const [modalShow, setModalShow] = useState(false);
-  const [heroesID, setHeroesID] = useState([]);
+  const [heroesID, setHeroesID] = useState();
   const [infoCards, setInfoCards] = useState([]);
+  const [rows, setRows] = useState([]);
   const [teamStats, setTeamStats] = useState({
     intelligence: 0,
     strength: 0,
@@ -69,6 +102,7 @@ export default function Home(props) {
   };
 
   useEffect(() => {
+    console.log(localStorage.getItem('Heroes'))
     heroesID.map((ID) => {
       axios
         .get(URL + TOKEN_API + "/" + ID)
@@ -89,11 +123,22 @@ export default function Home(props) {
               alignment: result.data.biography.alignment,
             })
           );
-        }) // Deberia ser 204 //result.status
+        })
         .catch((e) => {
           console.log("ERROR", e.message);
         });
     });
+    axios
+      .get(URL + TOKEN_API + "/search/" + "Ab ")
+      .then((result) => {
+        console.log(result);
+        if (result.data.response !== "error") {
+          setRows(result.data.results);
+        }
+      })
+      .catch((e) => {
+        console.log("ERROR", e.message);
+      });
   }, []);
 
   useEffect(() => {
@@ -116,8 +161,62 @@ export default function Home(props) {
     }
   }, [infoCards]);
 
+  const handleChange = () => {
+    setRows([]);
+    axios
+      .get(
+        URL +
+          TOKEN_API +
+          "/search/" +
+          document.getElementById("outlined-search-input").value
+      )
+      .then((result) => {
+        if (result.data.response !== "error") {
+          console.log(result.data.results);
+          setRows(result.data.results);
+        } else {
+          setRows([
+            { name: "", image: { url: "" }, biography: { alignment: "" } },
+            { name: "", image: { url: "" }, biography: { alignment: "" } },
+            { name: "", image: { url: "" }, biography: { alignment: "" } },
+          ]);
+        }
+      })
+      .catch((e) => {
+        console.log("ERROR", e.message);
+      });
+  };
+
+const handleAddHero = (e) =>{
+  console.log(e.target.id)
+  setHeroesID((currentHero) => currentHero.concat(e.target.id))
+  localStorage.setItem("Heroes",heroesID.concat(e.target.id))
+  axios
+        .get(URL + TOKEN_API + "/" + e.target.id)
+        .then((result) => {
+          console.log(result);
+          setInfoCards((infocurrent) =>
+            infocurrent.concat({
+              id: result.data.id,
+              image: result.data.image.url,
+              name: result.data.name,
+              powerstats: result.data.powerstats,
+              weight: result.data.appearance.weight[1],
+              height: result.data.appearance.height[1],
+              alias: result.data.biography.aliases,
+              eyecolor: result.data.appearance["eye-color"],
+              haircolor: result.data.appearance["hair-color"],
+              base: result.data.work.base,
+              alignment: result.data.biography.alignment,
+            })
+          );
+        })
+  setModalShow(false)
+}
+  
   return (
     <div className={classes.container}>
+      {loading && <LoadScreen />}
       <Grid container spacing={3} justifyContent="center" alignItems="flex-end">
         <Grid item xs={12}>
           <Typography
@@ -285,7 +384,9 @@ export default function Home(props) {
                             >
                               <AddCircleIcon
                                 fontSize="inherit"
-                                onClick={() => setModalShow(true)}
+                                onClick={() => {
+                                  setModalShow(true);
+                                }}
                               />
                             </IconButton>
                             <Skeleton
@@ -316,22 +417,85 @@ export default function Home(props) {
               sx={{
                 position: "absolute",
                 top: "50%",
-                left: "50%",
+                left: "55%",
                 transform: "translate(-50%, -50%)",
-                width: 400,
+                width: "100%",
                 bgcolor: "background.paper",
-                boxShadow: 24,
                 p: 4,
               }}
             >
-              <Paper variant="outlined" style={{ width: "90%" }}>
-                <Typography id="modal-modal-title" variant="h6" component="h2">
-                  Text in a modal
-                </Typography>
-                <Typography id="modal-modal-description" sx={{ mt: 2 }}>
-                  Duis mollis, est non commodo luctus, nisi erat porttitor
-                  ligula.
-                </Typography>
+              <Paper
+                variant="outlined"
+                style={{ width: "90%", backgroundColor: "#e0e0e0" }}
+              >
+                <Box
+                  sx={{
+                    "& .MuiTextField-root": { m: 1, width: "25ch" },
+                    display: "flex",
+                    width: "100%",
+                    alignItems: "center",
+                    pl: 1,
+                    pb: 1,
+                  }}
+                  noValidate
+                  autoComplete="off"
+                >
+                  <TextField
+                    id="outlined-search-input"
+                    label="Buscar"
+                    autoComplete="off"
+                  />
+                  <Button variant="contained" onClick={handleChange}>
+                    Buscar
+                  </Button>
+                </Box>
+                <Paper sx={{ width: "100%", overflow: "hidden" }}>
+                  <TableContainer sx={{ maxHeight: 440 }}>
+                    <Table sx={{ minWidth: 700 }} aria-label="customized table">
+                      <TableHead>
+                        <TableRow>
+                          <StyledTableCell>Name</StyledTableCell>
+                          <StyledTableCell align="right">
+                            Alignment
+                          </StyledTableCell>
+                          <StyledTableCell align="right">Image</StyledTableCell>
+                          <StyledTableCell align="right"></StyledTableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {rows.length > 0 &&
+                          rows.map((row) => (
+                            <StyledTableRow key={row.name}>
+                              <StyledTableCell component="th" scope="row">
+                                {row.name}
+                              </StyledTableCell>
+                              <StyledTableCell align="right">
+                                {row.biography.alignment}
+                              </StyledTableCell>
+                              <StyledTableCell align="right">
+                                <img
+                                  src={row.image.url}
+                                  style={{ width: "100px" }}
+                                />
+                              </StyledTableCell>
+                              <StyledTableCell align="right">
+                                {row.name !== "" && (
+                                  <Button
+                                    variant="contained"
+                                    id={row.id}
+                                    endIcon={<AddIcon />}
+                                    onClick={handleAddHero}
+                                  >
+                                    Add
+                                  </Button>
+                                )}
+                              </StyledTableCell>
+                            </StyledTableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Paper>
               </Paper>
             </Box>
           </Modal>
