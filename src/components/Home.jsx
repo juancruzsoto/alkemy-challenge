@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { makeStyles } from "@mui/styles";
+import { useTheme } from "@mui/material/styles";
 import { styled } from "@mui/material/styles";
 import homeStyle from "../assets/homeStyle";
 import {
+  Backdrop,
   Button,
   Card,
   CardContent,
   CardMedia,
   Grid,
+  Icon,
   IconButton,
   LinearProgress,
   Modal,
@@ -20,11 +23,15 @@ import {
   TableRow,
   TextField,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
 import TableCell, { tableCellClasses } from "@mui/material/TableCell";
 import { Box } from "@mui/system";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import AddIcon from "@mui/icons-material/Add";
+import InfoIcon from "@mui/icons-material/Info";
+import DeleteIcon from "@mui/icons-material/Delete";
+import WarningIcon from "@mui/icons-material/Warning";
 import LoadScreen from "./LoadScreen";
 import axios from "axios";
 import { TOKEN_API, URL } from "../config";
@@ -75,8 +82,10 @@ export default function Home(props) {
   const classes = useStyles();
 
   const [loading, setLoading] = useState(false);
+  const [auxHero, setAuxHero] = useState("");
+  const [modalConfirmation, setModalConfirmation] = useState(false);
   const [modalShow, setModalShow] = useState(false);
-  const [heroesID, setHeroesID] = useState();
+  const [heroesID, setHeroesID] = useState([]);
   const [infoCards, setInfoCards] = useState([]);
   const [rows, setRows] = useState([]);
   const [teamStats, setTeamStats] = useState({
@@ -102,36 +111,38 @@ export default function Home(props) {
   };
 
   useEffect(() => {
-    console.log(localStorage.getItem('Heroes'))
-    heroesID.map((ID) => {
-      axios
-        .get(URL + TOKEN_API + "/" + ID)
-        .then((result) => {
-          console.log(result);
-          setInfoCards((infocurrent) =>
-            infocurrent.concat({
-              id: result.data.id,
-              image: result.data.image.url,
-              name: result.data.name,
-              powerstats: result.data.powerstats,
-              weight: result.data.appearance.weight[1],
-              height: result.data.appearance.height[1],
-              alias: result.data.biography.aliases,
-              eyecolor: result.data.appearance["eye-color"],
-              haircolor: result.data.appearance["hair-color"],
-              base: result.data.work.base,
-              alignment: result.data.biography.alignment,
-            })
-          );
-        })
-        .catch((e) => {
-          console.log("ERROR", e.message);
-        });
-    });
+    let idH = JSON.parse(localStorage.getItem("Heroes"));
+    if (idH) {
+      setHeroesID(idH);
+      idH.map((ID) => {
+        axios
+          .get(URL + TOKEN_API + "/" + ID)
+          .then((result) => {
+            console.log(result);
+            setInfoCards((infocurrent) =>
+              infocurrent.concat({
+                id: result.data.id,
+                image: result.data.image.url,
+                name: result.data.name,
+                powerstats: result.data.powerstats,
+                weight: result.data.appearance.weight[1],
+                height: result.data.appearance.height[1],
+                alias: result.data.biography.aliases,
+                eyecolor: result.data.appearance["eye-color"],
+                haircolor: result.data.appearance["hair-color"],
+                base: result.data.work.base,
+                alignment: result.data.biography.alignment !== "good" ? "bad" : "good",
+              })
+            );
+          })
+          .catch((e) => {
+            console.log("ERROR", e.message);
+          });
+      });
+    }
     axios
       .get(URL + TOKEN_API + "/search/" + "Ab ")
       .then((result) => {
-        console.log(result);
         if (result.data.response !== "error") {
           setRows(result.data.results);
         }
@@ -153,7 +164,6 @@ export default function Home(props) {
       };
       infoCards.map((Hero) => {
         Object.keys(Hero.powerstats).map((skill) => {
-          console.log(Hero.powerstats[skill], teamStats[skill], skill);
           sumStats[skill] = sumStats[skill] + parseInt(Hero.powerstats[skill]);
         });
       });
@@ -172,7 +182,6 @@ export default function Home(props) {
       )
       .then((result) => {
         if (result.data.response !== "error") {
-          console.log(result.data.results);
           setRows(result.data.results);
         } else {
           setRows([
@@ -187,36 +196,61 @@ export default function Home(props) {
       });
   };
 
-const handleAddHero = (e) =>{
-  console.log(e.target.id)
-  setHeroesID((currentHero) => currentHero.concat(e.target.id))
-  localStorage.setItem("Heroes",heroesID.concat(e.target.id))
-  axios
-        .get(URL + TOKEN_API + "/" + e.target.id)
-        .then((result) => {
-          console.log(result);
-          setInfoCards((infocurrent) =>
-            infocurrent.concat({
-              id: result.data.id,
-              image: result.data.image.url,
-              name: result.data.name,
-              powerstats: result.data.powerstats,
-              weight: result.data.appearance.weight[1],
-              height: result.data.appearance.height[1],
-              alias: result.data.biography.aliases,
-              eyecolor: result.data.appearance["eye-color"],
-              haircolor: result.data.appearance["hair-color"],
-              base: result.data.work.base,
-              alignment: result.data.biography.alignment,
-            })
-          );
-        })
-  setModalShow(false)
-}
-  
+  const handleAddHero = (e) => {
+    console.log(e.target.id);
+    if (e.target.id !== "") {
+      setHeroesID((currentHero) => currentHero.concat(e.target.id));
+      localStorage.setItem(
+        "Heroes",
+        JSON.stringify(heroesID.concat(e.target.id))
+      );
+      axios.get(URL + TOKEN_API + "/" + e.target.id).then((result) => {
+        setInfoCards((infocurrent) =>
+          infocurrent.concat({
+            id: result.data.id,
+            image: result.data.image.url,
+            name: result.data.name,
+            powerstats: result.data.powerstats,
+            weight: result.data.appearance.weight[1],
+            height: result.data.appearance.height[1],
+            alias: result.data.biography.aliases,
+            eyecolor: result.data.appearance["eye-color"],
+            haircolor: result.data.appearance["hair-color"],
+            base: result.data.work.base,
+            alignment: result.data.biography.alignment !== "good" ? "bad" : "good",
+          })
+        );
+      });
+      setModalShow(false);
+    }
+  };
+
+  const handleDelete = () => {
+    let heroesnow = heroesID;
+    heroesnow.splice(heroesnow.indexOf(auxHero), 1);
+    console.log(infoCards);
+    setHeroesID(heroesnow);
+    localStorage.setItem("Heroes", JSON.stringify(heroesnow));
+
+    heroesnow = infoCards;
+
+    infoCards.map((Hero) => {
+      console.log(Hero.id, auxHero);
+      if (Hero.id === auxHero) {
+        console.log(Hero);
+        heroesnow.splice(heroesnow.indexOf(Hero), 1);
+      }
+    });
+
+    console.log(heroesnow);
+    setInfoCards(heroesnow);
+    setAuxHero("");
+    setModalConfirmation(false);
+  };
+
   return (
-    <div className={classes.container}>
-      {loading && <LoadScreen />}
+    <Box sx={{ flexGrow: 1 }}>
+      {/* {loading && <LoadScreen />} */}
       <Grid container spacing={3} justifyContent="center" alignItems="flex-end">
         <Grid item xs={12}>
           <Typography
@@ -237,8 +271,6 @@ const handleAddHero = (e) =>{
           >
             Conforma tu equipo de Superhéroes {teamStats["strength"]}
           </Typography>
-          {console.log(teamStats)}
-          {console.log(infoCards)}
           {Object.keys(teamStats).map((skill) => {
             console.log(teamStats[skill]);
           })}
@@ -278,11 +310,12 @@ const handleAddHero = (e) =>{
                               display: "flex",
                               flexDirection: "row",
                               width: "100%",
+                              height: "auto"
                             }}
                           >
                             <CardContent
                               sx={{ flex: "1 0 auto" }}
-                              style={{ width: "100%" }}
+                              style={{ width: "100%",minHeight:"423px" }}
                             >
                               <Typography component="div" variant="h5">
                                 {Hero.name}
@@ -316,13 +349,32 @@ const handleAddHero = (e) =>{
                               <Box
                                 sx={{
                                   display: "flex",
-                                  alignItems: "center",
+                                  alignItems: "flex-start",
+                                  justifyContent: "flex-start",
                                   pl: 1,
                                   pb: 1,
-                                  marginTop: "10px",
+                                  marginTop: "20px",
+                                  width: "100%",
                                 }}
                               >
-                                Ver detalle
+                                <IconButton
+                                  color="primary"
+                                  aria-label="upload picture"
+                                  component="span"
+                                >
+                                  <InfoIcon />
+                                </IconButton>
+                                <Button
+                                  variant="outlined"
+                                  startIcon={<DeleteIcon />}
+                                  color="error"
+                                  onClick={() => {
+                                    setModalConfirmation(true);
+                                    setAuxHero(Hero.id);
+                                  }}
+                                >
+                                  Delete
+                                </Button>
                               </Box>
                             </CardContent>
                           </Box>
@@ -407,26 +459,24 @@ const handleAddHero = (e) =>{
           </Box>
         </Grid>
         <Grid item xs={12}>
-          <Modal
-            open={modalShow}
-            onClose={() => setModalShow(false)}
-            aria-labelledby="modal-modal-title"
-            aria-describedby="modal-modal-description"
-          >
-            <Box
-              sx={{
-                position: "absolute",
-                top: "50%",
-                left: "55%",
-                transform: "translate(-50%, -50%)",
-                width: "100%",
-                bgcolor: "background.paper",
-                p: 4,
+          <Box sx={{ flexGrow: 1 }}>
+            <Modal
+              open={modalShow}
+              onClose={() => setModalShow(false)}
+              aria-labelledby="modal-modal-title"
+              aria-describedby="modal-modal-description"
+              style={{
+                padding: useMediaQuery(useTheme().breakpoints.up("md"))
+                  ? "20px"
+                  : "0px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               <Paper
                 variant="outlined"
-                style={{ width: "90%", backgroundColor: "#e0e0e0" }}
+                style={{ width: "100%", backgroundColor: "#e0e0e0" }}
               >
                 <Box
                   sx={{
@@ -442,11 +492,11 @@ const handleAddHero = (e) =>{
                 >
                   <TextField
                     id="outlined-search-input"
-                    label="Buscar"
+                    label="Search"
                     autoComplete="off"
                   />
                   <Button variant="contained" onClick={handleChange}>
-                    Buscar
+                    Search
                   </Button>
                 </Box>
                 <Paper sx={{ width: "100%", overflow: "hidden" }}>
@@ -454,12 +504,27 @@ const handleAddHero = (e) =>{
                     <Table sx={{ minWidth: 700 }} aria-label="customized table">
                       <TableHead>
                         <TableRow>
-                          <StyledTableCell>Name</StyledTableCell>
-                          <StyledTableCell align="right">
+                          <StyledTableCell
+                            style={{ width: "1px", whiteSpace: "nowrap" }}
+                          >
+                            Name
+                          </StyledTableCell>
+                          <StyledTableCell
+                            style={{ width: "1px", whiteSpace: "nowrap" }}
+                            align="left"
+                          >
                             Alignment
                           </StyledTableCell>
-                          <StyledTableCell align="right">Image</StyledTableCell>
-                          <StyledTableCell align="right"></StyledTableCell>
+                          <StyledTableCell
+                            style={{ width: "1px", whiteSpace: "nowrap" }}
+                            align="left"
+                          >
+                            Image
+                          </StyledTableCell>
+                          <StyledTableCell
+                            style={{ width: "1px", whiteSpace: "nowrap" }}
+                            align="left"
+                          ></StyledTableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -469,16 +534,16 @@ const handleAddHero = (e) =>{
                               <StyledTableCell component="th" scope="row">
                                 {row.name}
                               </StyledTableCell>
-                              <StyledTableCell align="right">
-                                {row.biography.alignment}
+                              <StyledTableCell align="left">
+                                {row.biography.alignment !== "good" ? "bad" : "good"}
                               </StyledTableCell>
-                              <StyledTableCell align="right">
+                              <StyledTableCell align="left">
                                 <img
                                   src={row.image.url}
                                   style={{ width: "100px" }}
                                 />
                               </StyledTableCell>
-                              <StyledTableCell align="right">
+                              <StyledTableCell align="left">
                                 {row.name !== "" && (
                                   <Button
                                     variant="contained"
@@ -497,10 +562,91 @@ const handleAddHero = (e) =>{
                   </TableContainer>
                 </Paper>
               </Paper>
-            </Box>
+            </Modal>
+          </Box>
+        </Grid>
+        <Grid item xs={12}>
+          <Modal
+            open={modalConfirmation}
+            onClose={() => setModalConfirmation(false)}
+            aria-labelledby="modal-modal-title"
+            aria-describedby="modal-modal-description"
+            style={{
+              padding: "20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              position: "absolute",
+            }}
+            closeAfterTransition
+            BackdropComponent={Backdrop}
+            BackdropProps={{
+              timeout: 500,
+            }}
+          >
+            <Paper
+              variant="outlined"
+              style={{
+                position: "absolute",
+                maxWidth: 400,
+                backgroundColor: "#ffffff",
+                padding: "20px",
+                backgroundColor: "#e0e0e0",
+              }}
+            >
+              <Grid
+                container
+                spacing={2}
+                direction="row"
+                justifyContent="center"
+                alignItems="center"
+              >
+                <Grid item xs={4}>
+                  <Icon
+                    component={WarningIcon}
+                    style={{ fontSize: 100 }}
+                    color="primary"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography gutterBottom align="center" variant="h4">
+                    Confirm delete hero
+                  </Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography gutterBottom align="center" variant="body1">
+                    Are you sure you wish to delete this Hero?
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Button
+                    fullWidth={true}
+                    size="medium"
+                    variant="contained"
+                    color="error"
+                    onClick={() => {
+                      setModalConfirmation(true);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Button
+                    fullWidth={true}
+                    size="medium"
+                    variant="contained"
+                    color="success"
+                    onClick={handleDelete}
+                  >
+                    Confirm
+                  </Button>
+                </Grid>
+              </Grid>
+            </Paper>
           </Modal>
         </Grid>
       </Grid>
-    </div>
+    </Box>
   );
 }
